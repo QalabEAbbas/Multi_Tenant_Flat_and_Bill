@@ -1,0 +1,23 @@
+<?php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Building extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['name','address','house_owner_id'];
+
+    public function houseOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'house_owner_id');
+    }
+
+    // Building has many flats
+    public function flats(): HasMany
+    {
+        return $this->hasMany(Flat::class);
+    }
+}
