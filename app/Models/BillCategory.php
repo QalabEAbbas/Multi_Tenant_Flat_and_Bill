@@ -30,5 +30,18 @@ class BillCategory extends Model
     {
         return $this->hasMany(Bill::class);
     }
+     // Tenant isolation global scope
+    protected static function booted()
+    {
+        static::addGlobalScope('tenantIsolation', function ($builder) {
+            $user = auth()->user();
+            if ($user && $user->role === 'tenant') {
+                $builder->whereHas('houseOwner.buildings.flats', function ($query) use ($user) {
+                    $query->where('id', $user->flat_id);
+                });
+            }
+        });
+    }
+
 
 }

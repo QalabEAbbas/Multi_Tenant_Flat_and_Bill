@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
+
 class AuthController extends Controller
 {
     // Register User (Admin or HouseOwner)
@@ -26,6 +27,9 @@ class AuthController extends Controller
             // 'flat_id'  => $request->flat_id ?? null,
 
         ]);
+        
+        $user->assignRole($request->role);
+
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -67,12 +71,21 @@ class AuthController extends Controller
     // Logout
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
+    $user = $request->user(); // currently authenticated user
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Logged out successfully'
-        ]);
+    // Revoke current token if using Sanctum
+    $request->user()->currentAccessToken()->delete();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Logged out successfully',
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->getRoleNames()->first(), // assumes one role per user
+        ],
+    ]);
     }
 }
 

@@ -1,82 +1,84 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Tenant;
+use App\Models\Flat;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class TenantController extends Controller
 {
     // Admin creates tenant
     public function store(Request $request)
     {
+        // Validate only the required fields according to document
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email|unique:tenants,email',
             'contact' => 'required|string|max:20',
             'flat_id' => 'required|exists:flats,id',
-            'password' => 'required|string|min:8'
         ]);
 
-        $tenant = User::create([
+        // Create tenant
+        $tenant = Tenant::create([
             'name' => $request->name,
             'email' => $request->email,
             'contact' => $request->contact,
             'flat_id' => $request->flat_id,
-            'password' => Hash::make($request->password),
+            'created_by' => Auth::id() // Admin who created the tenant
         ]);
 
-        // Assign role
-        $tenant->assignRole('tenant');
+        // Update flat.tenant_id for convenience
+        $flat = Flat::find($request->flat_id);
+        $flat->tenant_id = $tenant->id;
+        $flat->save();
 
-        return response()->json(['message' => 'Tenant created successfully', 'tenant' => $tenant], 201);
+        return response()->json([
+            'message' => 'Tenant created successfully',
+            'tenant' => $tenant
+        ], 201);
     }
 
     // Admin views tenants
     public function index()
     {
-        $tenants = User::role('tenant')->with('flat')->get();
+        $tenants = Tenant::with(['flat.building', 'creator'])->get();
         return response()->json($tenants);
+    }
+
+    public function show($id)
+    {
+        $tenant = Tenant::with(['flat.building', 'creator'])->findOrFail($id);
+        return response()->json($tenant);
     }
 
     public function update(Request $request, $id)
     {
-        $tenant = User::role('tenant')->findOrFail($id);
-
+        $tenant = Tenant::findOrFail($id);
         $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $tenant->id,
-            'contact' => 'sometimes|required|string|max:20',
+            'email' => 'sometimes|nullable|email|unique:tenants,email,' . $tenant->id,
+            'contact' => 'sometimes|nullable|string|max:20',
             'flat_id' => 'sometimes|required|exists:flats,id',
-            'password' => 'sometimes|nullable|string|min:8'
         ]);
 
-        if ($request->has('name')) $tenant->name = $request->name;
-        if ($request->has('email')) $tenant->email = $request->email;
-        if ($request->has('contact')) $tenant->contact = $request->contact;
-        if ($request->has('flat_id')) $tenant->flat_id = $request->flat_id;
-        if ($request->has('password')) $tenant->password = Hash::make($request->password);
+        $tenant->update($request->only('name', 'email', 'contact', 'flat_id'));
 
-        $tenant->save();
-
-        return response()->json([
-            'message' => 'Tenant updated successfully',
-            'tenant' => $tenant
-        ]);
-    }
-
-    // Admin removes tenant
-    public function destroy($id)
-    {
-        $tenant = User::role('tenant')->find($id);
-        if (!$tenant) {
-            return response()->json(['message' => 'Tenant not found or not a tenant'], 404);
+        if ($request->filled('flat_id')) {
+            // Remove tenant from previous flat
+            Flat::where('tenant_id', $tenant->id)->update(['tenant_id' => null]);
+            Flat::find($request->flat_id)->update(['tenant_id' => $tenant->id]);
         }
 
-        $tenant->delete();
-        return response()->json(['message' => 'Tenant removed successfully']);
+        return response()->json(['message' => 'Tenant updated', 'tenant' => $tenant]);
     }
 
-}
+    public function destroy($id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        Flat::where('tenant_id', $tenant->id)->update(['tenant_id' => null]);
+        $tenant->delete();
 
+        return response()->json(['message' => 'Tenant removed successfully']);
+    }
+}

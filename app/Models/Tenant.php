@@ -7,11 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 class Tenant extends Model
 {
     protected $fillable = [
-        'name', 'email', 'contact', 'house_owner_id'
+        'name',
+        'email',
+        'contact',
+        'flat_id',
+        'created_by',
     ];
 
-    public function houseOwner()
+    // Tenant belongs to a flat
+    public function flat()
     {
-        return $this->belongsTo(User::class, 'house_owner_id');
+        return $this->belongsTo(Flat::class);
+    }
+
+    // Admin who created the tenant
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

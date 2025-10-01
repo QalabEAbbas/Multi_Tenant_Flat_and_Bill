@@ -10,20 +10,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Flat;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
+
+    protected $dates = ['deleted_at'];
     protected $guard_name = 'web'; // or whatever guard you want to use
     protected $fillable = [
         'name',
         'email',
         'password',
         'role', // we'll add this column via migration below
-        'flat_id',
-        'building_id' // optional, add later after Buildings migration if you prefer
+        // 'contact'
+        // 'flat_id',
+        // 'building_id' // optional, add later after Buildings migration if you prefer
     ];
 
     protected $hidden = [
@@ -49,8 +53,8 @@ class User extends Authenticatable
             Building::class,
             'house_owner_id', // Foreign key on Building table
             'building_id',    // Foreign key on Flat table
-            'id',             // Local key on User table
-            'id'              // Local key on Building table
+            // 'id',             // Local key on User table
+            // 'id'              // Local key on Building table
         );
     }
 

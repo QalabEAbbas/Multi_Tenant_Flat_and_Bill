@@ -18,6 +18,7 @@ return new class extends Migration
             $table->enum('role', ['admin','house_owner','tenant'])->default('tenant');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->softDeletes();
             $table->rememberToken();
             $table->timestamps();
         });

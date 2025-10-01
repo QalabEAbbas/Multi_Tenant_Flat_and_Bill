@@ -13,18 +13,19 @@ public function up(): void
 {
     Schema::create('bills', function (Blueprint $table) {
         $table->id();
-        $table->unsignedBigInteger('flat_id');          // Bill belongs to a flat
-        $table->unsignedBigInteger('bill_category_id'); // Electricity, Gas, etc.
-        $table->string('month');                        // e.g. "2025-09"
+        $table->unsignedBigInteger('flat_id');
+        $table->unsignedBigInteger('bill_category_id');
+        $table->string('month');
         $table->decimal('amount', 10, 2);
-        $table->enum('status', ['paid', 'unpaid'])->default('unpaid');
+        $table->decimal('due_amount', 10, 2)->default(0);
+        $table->enum('status', ['unpaid','paid'])->default('unpaid');
         $table->text('notes')->nullable();
-        $table->decimal('due_amount', 10, 2)->default(0); // carry forward if unpaid
         $table->timestamps();
 
         $table->foreign('flat_id')->references('id')->on('flats')->onDelete('cascade');
         $table->foreign('bill_category_id')->references('id')->on('bill_categories')->onDelete('cascade');
     });
+
 }
 
 

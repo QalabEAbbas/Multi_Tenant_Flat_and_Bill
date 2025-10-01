@@ -10,12 +10,11 @@ return new class extends Migration {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('email')->nullable();
             $table->string('contact')->nullable();
-            $table->unsignedBigInteger('house_owner_id'); // Assigned to House Owner
+            $table->foreignId('flat_id')->constrained('flats')->cascadeOnDelete();
+            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete(); // Admin who created
             $table->timestamps();
-
-            $table->foreign('house_owner_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

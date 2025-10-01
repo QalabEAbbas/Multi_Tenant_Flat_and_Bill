@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+
 class HouseOwnerController extends Controller
 {
     /**
@@ -38,6 +39,7 @@ class HouseOwnerController extends Controller
             'password' => Hash::make($request->password),
             'role'     => 'house_owner',
         ]);
+        $owner->assignRole('house_owner');
 
         return response()->json([
             'status'  => 'success',
@@ -65,6 +67,10 @@ class HouseOwnerController extends Controller
     public function update(Request $request, $id)
     {
         $owner = User::where('role', 'house_owner')->findOrFail($id);
+        $request->validate([
+            'name'=>'sometimes|required',
+            'email'=>"sometimes|required|email|unique:users,email,$id"
+        ]);
 
         $owner->update($request->only(['name', 'email']));
 
@@ -78,14 +84,37 @@ class HouseOwnerController extends Controller
     /**
      * Delete a House Owner
      */
-    public function destroy($id)
+   public function destroy($id)
     {
         $owner = User::where('role', 'house_owner')->findOrFail($id);
-        $owner->delete();
+
+        $ownerData = [
+            'id' => $owner->id,
+            'name' => $owner->name,
+            'email' => $owner->email,
+        ];
+
+        $owner->delete(); // Soft delete
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'House Owner deleted successfully'
+            'message' => 'House Owner deleted successfully',
+            'user'    => $ownerData,
         ]);
     }
+
+
+    public function tenants(Request $request)
+{
+    $owner = $request->user();
+
+    $tenants = User::role('tenant')
+        ->whereHas('flat.building', function ($q) use ($owner) {
+            $q->where('house_owner_id', $owner->id);
+        })
+        ->with('flat')
+        ->get();
+
+    return response()->json(['tenants' => $tenants]);
+}
 }
